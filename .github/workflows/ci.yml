@@ -12,7 +12,7 @@ on:
       CACHE_VERSION:
         description: Cache version
         required: false
-        default: 4
+        default: 1
         type: string
       PYTHON_VERSION_DEFAULT:
         description: Default Python version
@@ -51,12 +51,6 @@ jobs:
     steps:
       - name: Check out code from GitHub
         uses: actions/checkout@v6
-      - name: Set up Python ${{ matrix.python-version }}
-        id: python
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ matrix.python-version }}
-          allow-prereleases: true
       - name: Restore base Python virtual environment
         id: cache-venv
         uses: actions/cache/restore@v5
@@ -64,8 +58,15 @@ jobs:
           path: .venv
           key: >-
             ${{ inputs.CACHE_VERSION}}-${{ runner.os }}-base-venv-${{
-            steps.python.outputs.python-version }}-${{
+            matrix.python-version }}-${{
             hashFiles('setup.py', 'requirements_test.txt', 'requirements.txt', 'pyproject.toml', 'setup.cfg', 'uv.lock') }}
+      - name: Set up Python ${{ matrix.python-version }}
+        if: steps.cache-venv.outputs.cache-hit != 'true'
+        id: python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          allow-prereleases: true
       - name: Install uv
         if: steps.cache-venv.outputs.cache-hit != 'true'
         uses: astral-sh/setup-uv@v7
@@ -119,7 +120,7 @@ jobs:
           path: .venv
           key: >-
             ${{ inputs.CACHE_VERSION}}-${{ runner.os }}-base-venv-${{
-            steps.python.outputs.python-version }}-${{
+            inputs.PYTHON_VERSION_DEFAULT }}-${{
             hashFiles('setup.py', 'requirements_test.txt', 'requirements.txt', 'pyproject.toml', 'setup.cfg', 'uv.lock') }}
       - name: Restore pre-commit environment from cache
         id: cache-precommit
@@ -168,7 +169,7 @@ jobs:
           path: .venv
           key: >-
             ${{ inputs.CACHE_VERSION}}-${{ runner.os }}-base-venv-${{
-            steps.python.outputs.python-version }}-${{
+            matrix.python-version }}-${{
             hashFiles('setup.py', 'requirements_test.txt', 'requirements.txt', 'pyproject.toml', 'setup.cfg', 'uv.lock') }}
       - name: Register Python problem matcher
         run: |
@@ -214,7 +215,7 @@ jobs:
           path: .venv
           key: >-
             ${{ inputs.CACHE_VERSION}}-${{ runner.os }}-base-venv-${{
-            steps.python.outputs.python-version }}-${{
+            inputs.PYTHON_VERSION_DEFAULT }}-${{
             hashFiles('setup.py', 'requirements_test.txt', 'requirements.txt', 'pyproject.toml', 'setup.cfg', 'uv.lock') }}
       - name: Download all coverage artifacts
         uses: actions/download-artifact@v7
